@@ -1,0 +1,211 @@
+------------------ NASA SPACE APPS CHALLENGE ------------------
+------ Nasa Space Apps Challenge 2014 - Rep. of Macedonia -----
+---------------- Challenge: Asteroid Watchers -----------------
+
+***************************************************************
+*       *        * Team: SkyNet Fly Emirates *       *        *
+***************************************************************
+
+
+Team members: 
+-------------
+Martin Jankoski, Marjan Todorov, Petar Grchevski,
+Andrej Georgievski, Martin Vasilkovski
+
+This reference manual/documentation applies to the code written during the NASA Space Apps Challenge 2014 in Skopje, Macedonia in the following files:
+
+telescopeControl.java
+telescopeServer.java
+telescopeInstance.java
+RTMLconverter.java
+result.java
+
+*  *  *
+
+Intended usage:
+---------------
+
+telescopeControl.java - applies to every telescopeInstance (each Robotic Operated Telescope) available in the user base. Includes methods to control telescope states and operation.
+
+telescopeServer.java - the robotic telescope network server side module. Implements the RTMLconverter (RTML - xml based parser) to process RTML requests from and to clients and telescopeInstance to enable control over a single telescope and its registration in the user database.
+
+telescopeInstance.java - the robotic telescope network client module. Runs on every computer where a remote telescope is present and is registered in the robotic network database. Includes methods to adjust the telescope depending on various parameters (time of day, availability, priority processes).
+
+RTMLconverter.java - a simple XML-based RTML parser concept.
+
+result.java - abstraction of a result class which is used to return results in the form of a picture or graph (byte stream) or a textual file containing data.
+
+*  *  * 
+
+Due to a large expected user base, the team recommends the use of noSQL/Apache couchDB databases and a separate backup server and storage to maintain redundancy and overall network dependability.
+Server's preferable operating system is linux (it may come in any flavour or distribution). The server side must have an open port to communicate with other devices on the network.
+MATLAB installation on the server is a must - the current server calculations and asteroid detection systems are implemented in MATLAB. MATLAB should be run in terminal, via a shell call in a java project implementing the classes included and described in this project.
+
+-------------------------
+| telescopeControl.java |
+-------------------------
+abstract class State
+	variables:
+	methods:
+		public void day(boolean yes)
+		public abstract boolean call()
+		public void sendTask()
+		public void finish()
+
+* * * 
+
+class sleepState extends State
+	variables:
+		telescopeControl TelescopeControl
+	methods:
+		public sleepState(telescopeControl telescopeControl)
+		public void day (boolean yes)
+		public boolean call()
+
+class idleState extends State
+	variables:
+		telescopeControl TelescopeControl
+	methods:
+		public idleState (telescopeControl telescopeControl)
+		public void day(boolean yes)
+		public boolean call()
+
+class waitState extends State
+	variables:
+		telescopeControl telescopeControl
+	methods:
+		public waitState(telescopeControl telescopeControl)
+		public void day(boolean yes)
+		public boolean call()
+		public void timePassed()
+		public void sendTask()
+
+class busyState extends State
+	variables:
+		telescopeControl telescopeControl
+	methods:
+		public busyState(telescopeControl telescopeControl)
+		public void day(boolean yes)
+		public boolean call()
+		public void finish()
+
+* * *
+
+public class telescopeControl
+	variables:
+		State sleep
+		State idle
+		State wait
+		State busy
+		State currentState = sleep
+	methods:
+		public telescopeControl()
+		public void day(boolean yes)
+		public boolean call()
+		public void sendTask()
+		public void finish()
+		public void setState(State newState)
+
+		public State getSleep()
+		public State getIdle()
+		public State getWait()
+		public State getBusy()
+		public State getCurrentState()
+
+The telescopeControl class represents the interface and method implementation of a state in the state-design pattern programming model of a telescope. It includes four functions which implement parameters to switch between different states and cope with connections via a network.
+
+
+
+
+------------------------
+| telescopeServer.java |
+------------------------
+
+public class telescopeServer
+
+	imports: java.util.*, java.io.*
+	variables:
+		Map<earthCoordinates,telescopeInstance> telescopes //HashMap<earthCoordinates,telescopeInstance>()
+	methods:
+		public void addTelescope()
+		public void target()
+
+public static void main(String[] args)
+
+This class implements the telescope server program which is to run on a server where different telescopes are logged and remembered to form the robotic telescope network. This class implements methods to add telescopes to the server, send target signals to two optimally positioned telescopes for a single threat which would then track the given object and send back a RESULT as a picture, scientific formulas or what not - depending on their resources, network architecture and other parameters such as telescope load or weather conditions / calculations scheduled on the local system.
+
+
+
+
+--------------------------
+| telescopeInstance.java |
+--------------------------
+
+	imports: java.util.*
+
+class earthCoordinates
+	
+	variables:
+		float longitude
+		float lattitude
+	methods:
+		public earthCoordinates(float longitude, float lattitude)
+		public float getLongitude()
+		public float getLattitude()
+		public boolean compareLong(earthCoordinates ec)
+		
+class spaceCoordinates
+	variables:
+		float rightAscension
+		float declination
+	methods:
+		public spaceCoordinates(float rightAscension, float declination)
+		public float getRightAscension()
+		public float getDeclination()
+
+public class telescopeInstance
+	variables:
+		telescopeControl control
+		String telescopeName
+		String ownerName
+		String IPaddress
+		earthCoordinates geoCoordinates
+		spaceCoordinates astroCoordinates
+	methods:
+		public telescopeInstance(String telescopeName, String ownerName,
+			earthCoordinates geoCoordinates, String IPaddress)
+		public double getDistance(earthCoordinates geoCoords)
+		public boolean call()
+		public void sendTask(spaceCoordinates sc)
+		public result finish()
+		public result takePhoto()
+	
+
+	
+
+----------------------
+| RTMLconverter.java |
+----------------------
+
+public class RTMLconverter
+	methods:
+		public static String getMode(String s)
+		public static String getName(String s)
+		public static float getRightAscension(String s)
+		public static float getDeclination(String s)
+		public static int getExposureCount(String s)
+		public static float getSeconds(String s)
+		public static String setRTML(String name, float hours, float degrees, int count, float seconds)
+
+public static void main(String[] args)
+
+This RTMLconverter class represents a basic RTML (xml-based) parser for both the server and client (telescope) side. It is still in a beta version, lacking full functionality but represents the idea of a capable and stable parser which must be considered to fully develop this project to become a standardized protocol intended for use in robotic telescope networks.
+
+
+
+
+---------------
+| result.java |
+---------------
+
+Result is a class which takes care of the output files that the telescopes would have to return to the server. Here, we can utilize the power of JAVA to write methods to send pictures and text over a network. Other users could build on this platform. As 'result' is a proper class, different networks may write additional code to send different data types over a network. The concept stays the same in all cases. Implementation of the class may be done via the structure 'union' or 'struct'.
